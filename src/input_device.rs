@@ -1,14 +1,23 @@
-use std::path::PathBuf;
+use std::{
+    path::PathBuf,
+    sync::mpsc::{channel, Receiver, Sender},
+    thread,
+};
 
-use evdev::{enumerate, Device};
+use anyhow::Result;
+use evdev::{enumerate, Device, EventSummary};
 
 pub struct InputDevice {
+    index: usize,
     path: String,
     device: Device,
+    sender: Sender<(usize, EventSummary)>,
 }
 
 impl InputDevice {
-    pub fn find_unique_input_devices(input_device_names: &[String]) -> Vec<Self> {
+    pub fn find_unique_input_devices(
+        input_device_names: &[String],
+    ) -> (Vec<Self>, Receiver<(usize, EventSummary)>) {
         let mut input_devices: Vec<(PathBuf, Device)> = Vec::new();
 
         for name in input_device_names {
@@ -22,13 +31,21 @@ impl InputDevice {
             }
         }
 
-        input_devices
-            .into_iter()
-            .map(|(p, d)| Self {
-                path: p.into_os_string().into_string().unwrap(),
-                device: d,
-            })
-            .collect()
+        let (sender, receiver) = channel();
+
+        (
+            input_devices
+                .into_iter()
+                .enumerate()
+                .map(|(index, (p, d))| Self {
+                    index,
+                    path: p.into_os_string().into_string().unwrap(),
+                    device: d,
+                    sender: sender.clone(),
+                })
+                .collect(),
+            receiver,
+        )
     }
 
     pub fn path(&self) -> &str {
@@ -41,5 +58,15 @@ impl InputDevice {
 
     pub fn device_mut(&mut self) -> &mut Device {
         &mut self.device
+    }
+
+    pub fn start_event_loop(mut self) {
+        thread::spawn(move || -> Result<()> {
+            loop {
+                for event in self.device.fetch_events()? {
+                    self.sender.send((self.index, event.destructure()))?;
+                }
+            }
+        });
     }
 }

@@ -5,7 +5,7 @@ use std::{collections::HashMap, fs::read_to_string, path::PathBuf};
 
 use anyhow::{anyhow, Result};
 use clap::Parser;
-use evdev::{AbsoluteAxisCode, KeyCode};
+use evdev::{AbsoluteAxisCode, EventSummary, EventType, InputEvent, KeyCode};
 use input_device::InputDevice;
 use output_device::OutputDevice;
 use serde::{Deserialize, Serialize};
@@ -45,7 +45,7 @@ macro_rules! create_mapping {
 }
 
 create_mapping!(
-    Buttons,
+    Button,
     KeyCode,
     [
         BTN_0, BTN_1, BTN_2, BTN_3, BTN_4, BTN_5, BTN_6, BTN_7, BTN_8, BTN_9, BTN_LEFT, BTN_RIGHT,
@@ -75,7 +75,7 @@ pub struct VJoyDescriptor {
     pub input_devices: Vec<String>,
     pub output_device: String,
 
-    pub key_mappings: HashMap<(usize, Buttons), Buttons>,
+    pub key_mappings: HashMap<(usize, Button), Button>,
     pub axis_mappings: HashMap<(usize, Axis), Axis>,
 }
 
@@ -98,7 +98,8 @@ fn main() -> Result<()> {
     )
     .map_err(|err| anyhow!("failed to parse descriptor file: {err:?}"))?;
 
-    let mut input_devices = InputDevice::find_unique_input_devices(&descriptor.input_devices);
+    let (input_devices, receiver) =
+        InputDevice::find_unique_input_devices(&descriptor.input_devices);
 
     println!(
         "input devices: {:#?}",
@@ -108,17 +109,36 @@ fn main() -> Result<()> {
             .collect::<Vec<_>>()
     );
 
-    let output_device = OutputDevice::new(&descriptor, &input_devices)?;
+    let mut output_device = OutputDevice::new(&descriptor, &input_devices)?;
+
+    input_devices
+        .into_iter()
+        .for_each(|device| device.start_event_loop());
 
     loop {
-        for device in input_devices.iter_mut() {
-            for event in device.device_mut().fetch_events()? {
-                // TODO
+        let (index, input) = receiver.recv()?;
+
+        match input {
+            EventSummary::Key(_, key_code, state) => {
+                println!("device {index} sent key event {key_code:?} in state {state}");
+
+                if let Some(button) = descriptor.key_mappings.get(&(index, key_code.into())) {
+                    output_device.emit(&[InputEvent::new(
+                        EventType::KEY.0,
+                        Into::<KeyCode>::into(*button).0,
+                        state,
+                    )])?;
+                }
             }
+            EventSummary::AbsoluteAxis(_, axis, value) => {
+                println!("device {index} sent axis {axis:?} with {value}");
+
+                if let Some(axis) = descriptor.axis_mappings
+            }
+
+            _ => (),
         }
     }
-
-    Ok(())
 }
 
 #[cfg(test)]

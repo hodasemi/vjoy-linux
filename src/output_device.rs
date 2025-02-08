@@ -1,3 +1,5 @@
+use std::ops::{Deref, DerefMut};
+
 use anyhow::{anyhow, Result};
 use evdev::{uinput::VirtualDevice, AttributeSet, KeyCode, UinputAbsSetup};
 
@@ -36,5 +38,19 @@ impl OutputDevice {
         Ok(Self {
             device: builder.build()?,
         })
+    }
+}
+
+impl Deref for OutputDevice {
+    type Target = VirtualDevice;
+
+    fn deref(&self) -> &Self::Target {
+        &self.device
+    }
+}
+
+impl DerefMut for OutputDevice {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.device
     }
 }
