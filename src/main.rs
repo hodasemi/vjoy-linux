@@ -1,15 +1,20 @@
+mod input_device;
+mod output_device;
+
 use std::{collections::HashMap, fs::read_to_string, path::PathBuf};
 
 use anyhow::{anyhow, Result};
 use clap::Parser;
-use evdev::{enumerate, AbsoluteAxisCode, Device, KeyCode};
+use evdev::{AbsoluteAxisCode, KeyCode};
+use input_device::InputDevice;
+use output_device::OutputDevice;
 use serde::{Deserialize, Serialize};
 use serde_json::from_str;
 
 macro_rules! create_mapping {
     ( $name:ident, $mapper:ident, [ $( $btn:ident $(,)? )+ ] ) => {
         #[allow(non_camel_case_types)]
-        #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash)]
+        #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash, Clone, Copy)]
         pub enum $name {
             $(
                 $btn,
@@ -93,37 +98,27 @@ fn main() -> Result<()> {
     )
     .map_err(|err| anyhow!("failed to parse descriptor file: {err:?}"))?;
 
-    let input_devices = unique_input_devices(descriptor.input_devices);
+    let mut input_devices = InputDevice::find_unique_input_devices(&descriptor.input_devices);
 
     println!(
         "input devices: {:#?}",
         input_devices
             .iter()
-            .map(|(p, d)| (p, d.name()))
+            .map(|d| (d.path(), d.device().name()))
             .collect::<Vec<_>>()
     );
 
-    Ok(())
-}
+    let output_device = OutputDevice::new(&descriptor, &input_devices)?;
 
-fn unique_input_devices(input_device_names: Vec<String>) -> Vec<(String, Device)> {
-    let mut input_devices: Vec<(PathBuf, Device)> = Vec::new();
-
-    for name in input_device_names {
-        for (path, device) in enumerate() {
-            if let Some(device_name) = device.name() {
-                if name == device_name && !input_devices.iter().any(|(p, _)| path == *p) {
-                    input_devices.push((path, device));
-                    break;
-                }
+    loop {
+        for device in input_devices.iter_mut() {
+            for event in device.device_mut().fetch_events()? {
+                // TODO
             }
         }
     }
 
-    input_devices
-        .into_iter()
-        .map(|(p, d)| (p.into_os_string().into_string().unwrap(), d))
-        .collect()
+    Ok(())
 }
 
 #[cfg(test)]
