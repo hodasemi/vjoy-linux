@@ -96,17 +96,17 @@ fn main() -> Result<()> {
     let input_devices = unique_input_devices(descriptor.input_devices);
 
     println!(
-        "devices: {:#?}",
+        "input devices: {:#?}",
         input_devices
             .iter()
-            .map(|d| (d.name(), d.physical_path()))
+            .map(|(p, d)| (p, d.name()))
             .collect::<Vec<_>>()
     );
 
     Ok(())
 }
 
-fn unique_input_devices(input_device_names: Vec<String>) -> Vec<Device> {
+fn unique_input_devices(input_device_names: Vec<String>) -> Vec<(String, Device)> {
     let mut input_devices: Vec<(PathBuf, Device)> = Vec::new();
 
     for name in input_device_names {
@@ -120,5 +120,45 @@ fn unique_input_devices(input_device_names: Vec<String>) -> Vec<Device> {
         }
     }
 
-    input_devices.into_iter().map(|(_, d)| d).collect()
+    input_devices
+        .into_iter()
+        .map(|(p, d)| (p.into_os_string().into_string().unwrap(), d))
+        .collect()
+}
+
+#[cfg(test)]
+mod test {
+    use std::{collections::HashMap, fs};
+
+    use anyhow::Result;
+    use serde_json::to_string_pretty;
+
+    use crate::VJoyDescriptor;
+
+    #[test]
+    fn print_devices() {
+        println!(
+            "{:#?}",
+            evdev::enumerate()
+                .map(|(p, d)| (p, d.name().map(|s| s.to_string())))
+                .collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn create_file() -> Result<()> {
+        let desc = VJoyDescriptor {
+            input_devices: vec![
+                "Thrustmaster T.16000M".to_string(),
+                "Thrustmaster T.16000M".to_string(),
+            ],
+            output_device: "".to_string(),
+            key_mappings: HashMap::new(),
+            axis_mappings: HashMap::new(),
+        };
+
+        fs::write("example_descriptor.json", &to_string_pretty(&desc)?)?;
+
+        Ok(())
+    }
 }
