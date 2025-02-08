@@ -56,10 +56,6 @@ impl InputDevice {
         &self.device
     }
 
-    pub fn device_mut(&mut self) -> &mut Device {
-        &mut self.device
-    }
-
     pub fn start_event_loop(mut self) {
         thread::spawn(move || -> Result<()> {
             loop {
