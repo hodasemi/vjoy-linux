@@ -51,7 +51,7 @@ fn main() -> Result<()> {
     .map_err(|err| anyhow!("failed to parse descriptor file: {err:?}"))?;
 
     let (input_devices, receiver) =
-        InputDevice::find_unique_input_devices(&descriptor.input_devices);
+        InputDevice::find_unique_input_devices(&descriptor.input_devices)?;
 
     println!(
         "input devices: {:#?}",

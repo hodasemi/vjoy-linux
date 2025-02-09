@@ -4,7 +4,7 @@ use std::{
     thread,
 };
 
-use anyhow::Result;
+use anyhow::{bail, Result};
 use evdev::{enumerate, Device, EventSummary};
 
 pub struct InputDevice {
@@ -17,7 +17,7 @@ pub struct InputDevice {
 impl InputDevice {
     pub fn find_unique_input_devices(
         input_device_names: &[String],
-    ) -> (Vec<Self>, Receiver<(usize, EventSummary)>) {
+    ) -> Result<(Vec<Self>, Receiver<(usize, EventSummary)>)> {
         let mut input_devices: Vec<(PathBuf, Device)> = Vec::new();
 
         for name in input_device_names {
@@ -31,9 +31,13 @@ impl InputDevice {
             }
         }
 
+        if input_devices.len() != input_device_names.len() {
+            bail!("could not find all input devices!");
+        }
+
         let (sender, receiver) = channel();
 
-        (
+        Ok((
             input_devices
                 .into_iter()
                 .enumerate()
@@ -45,7 +49,7 @@ impl InputDevice {
                 })
                 .collect(),
             receiver,
-        )
+        ))
     }
 
     pub fn path(&self) -> &str {

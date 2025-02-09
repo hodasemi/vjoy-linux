@@ -81,7 +81,7 @@ impl VJoyDescriptor {
             bail!("passthrough count must match input count!");
         }
 
-        let mut stub_devices = InputDevice::find_unique_input_devices(&generation.input).0;
+        let mut stub_devices = InputDevice::find_unique_input_devices(&generation.input)?.0;
         let passthrough_device = stub_devices.remove(0);
 
         let mut key_mappings = HashMap::new();
