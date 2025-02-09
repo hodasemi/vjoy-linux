@@ -1,7 +1,10 @@
 use std::ops::{Deref, DerefMut};
 
 use anyhow::{anyhow, Result};
-use evdev::{uinput::VirtualDevice, AbsoluteAxisCode, AttributeSet, KeyCode, UinputAbsSetup};
+use evdev::{
+    uinput::VirtualDevice, AbsoluteAxisCode, AttributeSet, BusType, InputId, KeyCode,
+    UinputAbsSetup,
+};
 
 use crate::{descriptor::OutputType, input_device::InputDevice, VJoyDescriptor};
 
@@ -67,6 +70,7 @@ impl OutputDevice {
 
                         let mut builder = VirtualDevice::builder()?
                             .name(&output_device)
+                            .input_id(InputId::new(BusType::BUS_USB, 0xcafe, index as u16, 1))
                             .with_keys(&keys)?;
 
                         for (&(input_index, src_axis), &dst_axis) in descriptor.axis_mappings.iter()
