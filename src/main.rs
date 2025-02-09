@@ -86,7 +86,17 @@ fn main() -> Result<()> {
 
             println!("command: {command}");
 
-            Command::new(command).output().unwrap();
+            let mut split = command.split_whitespace();
+            let mut command = Command::new(split.next().unwrap());
+
+            while let Some(s) = split.next() {
+                println!("command: {command:?}");
+                command.arg(s);
+            }
+
+            println!("command: {command:?}");
+
+            command.output().unwrap();
         }
         None => {
             event_loop(output, receiver, descriptor, args.debug)?;
