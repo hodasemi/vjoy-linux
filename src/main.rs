@@ -3,7 +3,7 @@ mod input_device;
 mod mappings;
 mod output_device;
 
-use std::{fs::read_to_string, path::PathBuf};
+use std::{fs::read_to_string, path::PathBuf, process::Command, sync::mpsc::Receiver, thread};
 
 use anyhow::{anyhow, Result};
 use clap::Parser;
@@ -23,7 +23,7 @@ struct Args {
     descriptor_file: Option<PathBuf>,
 
     /// Enable debug output
-    #[arg(long = "debug")]
+    #[arg(long = "debug", default_value_t = false)]
     debug: bool,
 
     /// Generator Input Devices (Comma separated)
@@ -37,6 +37,10 @@ struct Args {
     /// Generator File
     #[arg(short = 'o', long = "output")]
     generator_file: Option<PathBuf>,
+
+    /// Program that should be started
+    #[arg(short = 'p', long = "program")]
+    program: Option<String>,
 }
 
 fn main() -> Result<()> {
@@ -70,18 +74,40 @@ fn main() -> Result<()> {
         );
     }
 
-    let mut output = OutputDevice::new(&descriptor, &input_devices)?;
+    let output = OutputDevice::new(&descriptor, &input_devices)?;
 
     input_devices
         .into_iter()
         .for_each(|device| device.start_event_loop());
 
+    match args.program {
+        Some(command) => {
+            thread::spawn(move || event_loop(output, receiver, descriptor, args.debug));
+
+            println!("command: {command}");
+
+            Command::new(command).output().unwrap();
+        }
+        None => {
+            event_loop(output, receiver, descriptor, args.debug)?;
+        }
+    }
+
+    Ok(())
+}
+
+fn event_loop(
+    mut output: Output,
+    receiver: Receiver<(usize, EventSummary)>,
+    descriptor: VJoyDescriptor,
+    debug: bool,
+) -> Result<()> {
     loop {
         let (index, input) = receiver.recv()?;
 
         match input {
             EventSummary::Key(_, key_code, state) => {
-                if args.debug {
+                if debug {
                     println!("device {index} sent key event {key_code:?} in state {state}");
                 }
 
@@ -107,7 +133,7 @@ fn main() -> Result<()> {
                 }
             }
             EventSummary::AbsoluteAxis(_, axis, value) => {
-                if args.debug {
+                if debug {
                     println!("device {index} sent axis {axis:?} with {value}");
                 }
 
