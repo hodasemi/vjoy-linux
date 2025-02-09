@@ -1,0 +1,26 @@
+# Maintainer: hodasemi <michaelh.95 at t-online dot de>
+_pkgbase=vjoy-linux
+pkgname="${_pkgbase}-git"
+pkgver=0.1
+pkgrel=1
+pkgdesc="Virtual device creator/mapper"
+arch=('x86_64')
+url="https://github.com/hodasemi/${_pkgbase}"
+license=('GPL-3.0')
+makedepends=('rust')
+depends=()
+conflicts=("${_pkgbase}")
+source=("git+${url}")
+md5sums=(SKIP)
+
+build() {
+    cd ${_pkgbase}
+
+    # build binaries
+    cargo build --release
+}
+
+package() {
+    # copy binary
+    install -Dm755 ${_pkgbase}/target/release/vjoy-linux "${pkgdir}"/usr/bin/vjoy-linux
+}
