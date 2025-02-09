@@ -40,6 +40,8 @@ fn main() -> Result<()> {
 
     if let Some(input_devices) = args.input_devices {
         VJoyDescriptor::generate_from_cli(input_devices, args.output_device, args.generator_file)?;
+
+        return Ok(());
     }
 
     let descriptor: VJoyDescriptor = from_str(
