@@ -10,7 +10,7 @@ use clap::Parser;
 use descriptor::VJoyDescriptor;
 use evdev::{AbsoluteAxisCode, EventSummary, EventType, InputEvent, KeyCode};
 use input_device::InputDevice;
-use output_device::OutputDevice;
+use output_device::{Output, OutputDevice};
 use ron::from_str;
 
 /// Linux vjoy cli
@@ -61,7 +61,7 @@ fn main() -> Result<()> {
             .collect::<Vec<_>>()
     );
 
-    let mut output_device = OutputDevice::new(&descriptor, &input_devices)?;
+    let mut output = OutputDevice::new(&descriptor, &input_devices)?;
 
     input_devices
         .into_iter()
@@ -76,7 +76,22 @@ fn main() -> Result<()> {
 
                 if let Some(button) = descriptor.key_mappings.get(&(index, key_code.into())) {
                     if let Ok(code) = TryInto::<KeyCode>::try_into(*button) {
-                        output_device.emit(&[InputEvent::new(EventType::KEY.0, code.0, state)])?;
+                        match &mut output {
+                            Output::Combined(output_device) => {
+                                output_device.emit(&[InputEvent::new(
+                                    EventType::KEY.0,
+                                    code.0,
+                                    state,
+                                )])?;
+                            }
+                            Output::Passthrough(output_devices) => {
+                                output_devices[index].emit(&[InputEvent::new(
+                                    EventType::KEY.0,
+                                    code.0,
+                                    state,
+                                )])?;
+                            }
+                        }
                     }
                 }
             }
@@ -85,11 +100,22 @@ fn main() -> Result<()> {
 
                 if let Some(axis) = descriptor.axis_mappings.get(&(index, axis.into())) {
                     if let Ok(axis) = TryInto::<AbsoluteAxisCode>::try_into(*axis) {
-                        output_device.emit(&[InputEvent::new(
-                            EventType::ABSOLUTE.0,
-                            axis.0,
-                            value,
-                        )])?;
+                        match &mut output {
+                            Output::Combined(output_device) => {
+                                output_device.emit(&[InputEvent::new(
+                                    EventType::ABSOLUTE.0,
+                                    axis.0,
+                                    value,
+                                )])?;
+                            }
+                            Output::Passthrough(output_devices) => {
+                                output_devices[index].emit(&[InputEvent::new(
+                                    EventType::ABSOLUTE.0,
+                                    axis.0,
+                                    value,
+                                )])?;
+                            }
+                        }
                     }
                 }
             }
