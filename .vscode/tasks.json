@@ -11,7 +11,7 @@
 			"args": [
 				"--",
 				"-f",
-				"stub_descriptor.ron"
+				"example_descriptor/thrustmaster_t16000_passthrough.ron"
 			]
 		}
 	]

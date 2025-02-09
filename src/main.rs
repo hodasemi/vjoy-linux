@@ -22,6 +22,10 @@ struct Args {
     #[arg(short = 'f', long = "file")]
     descriptor_file: Option<PathBuf>,
 
+    /// Enable debug output
+    #[arg(long = "debug")]
+    debug: bool,
+
     /// Generator Input Devices (Comma separated)
     #[arg(short = 'i', long = "input")]
     input_devices: Option<String>,
@@ -56,13 +60,15 @@ fn main() -> Result<()> {
     let (input_devices, receiver) =
         InputDevice::find_unique_input_devices(&descriptor.input_devices)?;
 
-    println!(
-        "input devices: {:#?}",
-        input_devices
-            .iter()
-            .map(|d| (d.path(), d.device().name()))
-            .collect::<Vec<_>>()
-    );
+    if args.debug {
+        println!(
+            "input devices: {:#?}",
+            input_devices
+                .iter()
+                .map(|d| (d.path(), d.device().name()))
+                .collect::<Vec<_>>()
+        );
+    }
 
     let mut output = OutputDevice::new(&descriptor, &input_devices)?;
 
@@ -75,7 +81,9 @@ fn main() -> Result<()> {
 
         match input {
             EventSummary::Key(_, key_code, state) => {
-                println!("device {index} sent key event {key_code:?} in state {state}");
+                if args.debug {
+                    println!("device {index} sent key event {key_code:?} in state {state}");
+                }
 
                 if let Some(button) = descriptor.key_mappings.get(&(index, key_code.into())) {
                     if let Ok(code) = TryInto::<KeyCode>::try_into(*button) {
@@ -99,7 +107,9 @@ fn main() -> Result<()> {
                 }
             }
             EventSummary::AbsoluteAxis(_, axis, value) => {
-                println!("device {index} sent axis {axis:?} with {value}");
+                if args.debug {
+                    println!("device {index} sent axis {axis:?} with {value}");
+                }
 
                 if let Some(axis) = descriptor.axis_mappings.get(&(index, axis.into())) {
                     if let Ok(axis) = TryInto::<AbsoluteAxisCode>::try_into(*axis) {
