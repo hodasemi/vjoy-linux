@@ -20,7 +20,7 @@ use ron::from_str;
 struct Args {
     /// VJoyDescriptor file
     #[arg(short = 'f', long = "file")]
-    descriptor_file: PathBuf,
+    descriptor_file: Option<PathBuf>,
 
     /// Generator Input Devices (Comma separated)
     #[arg(short = 'i', long = "input")]
@@ -45,8 +45,11 @@ fn main() -> Result<()> {
     }
 
     let descriptor: VJoyDescriptor = from_str(
-        &read_to_string(args.descriptor_file)
-            .map_err(|err| anyhow!("failed to open descriptor file: {err:?}"))?,
+        &read_to_string(
+            args.descriptor_file
+                .ok_or(anyhow!("missing descriptor file (-f <path to file>)"))?,
+        )
+        .map_err(|err| anyhow!("failed to open descriptor file: {err:?}"))?,
     )
     .map_err(|err| anyhow!("failed to parse descriptor file: {err:?}"))?;
 
