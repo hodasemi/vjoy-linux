@@ -109,5 +109,9 @@ create_mapping!(
         ABS_BRAKE,
         ABS_HAT0X,
         ABS_HAT0Y,
+        ABS_HAT1X,
+        ABS_HAT1Y,
+        ABS_HAT2X,
+        ABS_HAT2Y,
     ]
 );
