@@ -21,10 +21,26 @@ struct Args {
     /// VJoyDescriptor file
     #[arg(short = 'f', long = "file")]
     descriptor_file: PathBuf,
+
+    /// Generator Input Devices (Comma separated)
+    #[arg(short = 'i', long = "input")]
+    input_devices: Option<String>,
+
+    /// Generator Output Device
+    #[arg(short = 'd', long = "device")]
+    output_device: Option<String>,
+
+    /// Generator File
+    #[arg(short = 'o', long = "output")]
+    generator_file: Option<PathBuf>,
 }
 
 fn main() -> Result<()> {
     let args = Args::parse();
+
+    if let Some(input_devices) = args.input_devices {
+        VJoyDescriptor::generate_from_cli(input_devices, args.output_device, args.generator_file)?;
+    }
 
     let descriptor: VJoyDescriptor = from_str(
         &read_to_string(args.descriptor_file)

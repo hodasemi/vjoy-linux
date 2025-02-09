@@ -1,10 +1,12 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, fs, path::PathBuf};
 
 use crate::{
     input_device::InputDevice,
     mappings::{Axis, Button},
 };
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
+use serde_json::to_string_pretty;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GenerationDescription {
@@ -22,6 +24,24 @@ pub struct VJoyDescriptor {
 }
 
 impl VJoyDescriptor {
+    pub fn generate_from_cli(
+        input_devices: String,
+        output_device: Option<String>,
+        output_file: Option<PathBuf>,
+    ) -> Result<()> {
+        let descriptor = Self::generate_descriptor(GenerationDescription {
+            input: input_devices.split(',').map(|s| s.to_string()).collect(),
+            output: output_device.unwrap_or("Combined Joystick".to_string()),
+        });
+
+        fs::write(
+            output_file.unwrap_or("stub_descriptor.json".into()),
+            &to_string_pretty(&descriptor)?,
+        )?;
+
+        Ok(())
+    }
+
     pub fn generate_descriptor(generation: GenerationDescription) -> Self {
         let mut stub_devices = InputDevice::find_unique_input_devices(&generation.input).0;
         let passthrough_device = stub_devices.remove(0);
@@ -75,7 +95,7 @@ mod test {
     use crate::VJoyDescriptor;
 
     #[test]
-    fn create_file() -> Result<()> {
+    fn create_empty_description_file() -> Result<()> {
         let desc = VJoyDescriptor {
             input_devices: vec![
                 "Thrustmaster T.16000M".to_string(),
@@ -87,6 +107,21 @@ mod test {
         };
 
         fs::write("example_descriptor.json", &to_string_pretty(&desc)?)?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn generate_stub_description_file() -> Result<()> {
+        let desc = VJoyDescriptor::generate_descriptor(super::GenerationDescription {
+            input: vec![
+                "Thrustmaster T.16000M".to_string(),
+                "Thrustmaster T.16000M".to_string(),
+            ],
+            output: "Combined Thrustmaster Joystick".to_string(),
+        });
+
+        fs::write("stub_descriptor.json", &to_string_pretty(&desc)?)?;
 
         Ok(())
     }
