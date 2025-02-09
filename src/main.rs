@@ -75,22 +75,22 @@ fn main() -> Result<()> {
                 println!("device {index} sent key event {key_code:?} in state {state}");
 
                 if let Some(button) = descriptor.key_mappings.get(&(index, key_code.into())) {
-                    output_device.emit(&[InputEvent::new(
-                        EventType::KEY.0,
-                        Into::<KeyCode>::into(*button).0,
-                        state,
-                    )])?;
+                    if let Ok(code) = TryInto::<KeyCode>::try_into(*button) {
+                        output_device.emit(&[InputEvent::new(EventType::KEY.0, code.0, state)])?;
+                    }
                 }
             }
             EventSummary::AbsoluteAxis(_, axis, value) => {
                 println!("device {index} sent axis {axis:?} with {value}");
 
                 if let Some(axis) = descriptor.axis_mappings.get(&(index, axis.into())) {
-                    output_device.emit(&[InputEvent::new(
-                        EventType::ABSOLUTE.0,
-                        Into::<AbsoluteAxisCode>::into(*axis).0,
-                        value,
-                    )])?;
+                    if let Ok(axis) = TryInto::<AbsoluteAxisCode>::try_into(*axis) {
+                        output_device.emit(&[InputEvent::new(
+                            EventType::ABSOLUTE.0,
+                            axis.0,
+                            value,
+                        )])?;
+                    }
                 }
             }
 

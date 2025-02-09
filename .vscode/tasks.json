@@ -11,7 +11,7 @@
 			"args": [
 				"--",
 				"-f",
-				"stub_descriptor.ron"
+				"thrustmaster_descriptor.ron"
 			]
 		}
 	]

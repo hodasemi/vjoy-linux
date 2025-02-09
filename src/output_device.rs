@@ -1,7 +1,7 @@
 use std::ops::{Deref, DerefMut};
 
 use anyhow::{anyhow, Result};
-use evdev::{uinput::VirtualDevice, AttributeSet, KeyCode, UinputAbsSetup};
+use evdev::{uinput::VirtualDevice, AbsoluteAxisCode, AttributeSet, KeyCode, UinputAbsSetup};
 
 use crate::{input_device::InputDevice, VJoyDescriptor};
 
@@ -14,7 +14,7 @@ impl OutputDevice {
         let keys: AttributeSet<KeyCode> = descriptor
             .key_mappings
             .values()
-            .map(|&b| -> KeyCode { b.into() })
+            .filter_map(|&b| TryInto::<KeyCode>::try_into(b).ok())
             .collect();
 
         let mut builder = VirtualDevice::builder()?
@@ -22,17 +22,21 @@ impl OutputDevice {
             .with_keys(&keys)?;
 
         for (&(index, src_axis), &dst_axis) in descriptor.axis_mappings.iter() {
-            let device = &input_devices[index];
-            let abs_info = device
-                .device()
-                .get_absinfo()?
-                .find_map(|(axis, info)| (axis == src_axis.into()).then(|| info))
-                .ok_or(anyhow!(
-                    "failed to find described axis ({src_axis:?}) for device {index}"
-                ))?;
+            if let Ok(dst_axis) = dst_axis.try_into() {
+                let src_axis: AbsoluteAxisCode = src_axis.try_into()?;
 
-            let abs_setup = UinputAbsSetup::new(dst_axis.into(), abs_info);
-            builder = builder.with_absolute_axis(&abs_setup)?;
+                let device = &input_devices[index];
+                let abs_info = device
+                    .device()
+                    .get_absinfo()?
+                    .find_map(|(axis, info)| (axis == src_axis).then(|| info))
+                    .ok_or(anyhow!(
+                        "failed to find described axis ({src_axis:?}) for device {index}"
+                    ))?;
+
+                let abs_setup = UinputAbsSetup::new(dst_axis, abs_info);
+                builder = builder.with_absolute_axis(&abs_setup)?;
+            }
         }
 
         Ok(Self {

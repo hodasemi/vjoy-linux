@@ -38,18 +38,20 @@ macro_rules! create_mapping {
             }
         }
 
-        impl Into<$mapper> for $name {
-            fn into(self) -> $mapper {
+        impl TryInto<$mapper> for $name {
+            type Error = anyhow::Error;
+
+            fn try_into(self) -> Result<$mapper, Self::Error> {
                 match self {
                     $(
-                        Self::$btn => $mapper::$btn,
+                        Self::$btn => Ok($mapper::$btn),
                     )+
 
                     $(
-                        Self::$unknown(i) => $mapper::new(i),
+                        Self::$unknown(i) => Ok($mapper::new(i)),
                     )?
 
-                    Self::Stub => panic!("Stub can't be matched"),
+                    Self::Stub => Err(anyhow::anyhow!("Stub can't be matched")),
                 }
             }
         }
