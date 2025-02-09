@@ -90,11 +90,12 @@ fn main() -> Result<()> {
             let mut command = Command::new(split.next().unwrap());
 
             while let Some(s) = split.next() {
-                println!("command: {command:?}");
                 command.arg(s);
             }
 
-            println!("command: {command:?}");
+            if args.debug {
+                println!("command: {command:?}");
+            }
 
             command.output().unwrap();
         }
