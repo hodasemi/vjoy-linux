@@ -11,7 +11,7 @@
 			"args": [
 				"--",
 				"-f",
-				"example_descriptor.json"
+				"stub_descriptor.ron"
 			]
 		}
 	]

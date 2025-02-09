@@ -11,7 +11,7 @@ use descriptor::VJoyDescriptor;
 use evdev::{AbsoluteAxisCode, EventSummary, EventType, InputEvent, KeyCode};
 use input_device::InputDevice;
 use output_device::OutputDevice;
-use serde_json::from_str;
+use ron::from_str;
 
 /// Linux vjoy cli
 #[derive(Debug, Parser)]

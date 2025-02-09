@@ -1,12 +1,12 @@
-use std::{collections::HashMap, fs, path::PathBuf};
+use std::{collections::HashMap, fmt::Debug, fs, path::PathBuf};
 
 use crate::{
     input_device::InputDevice,
     mappings::{Axis, Button},
 };
 use anyhow::Result;
+use ron::ser::{to_string_pretty, PrettyConfig};
 use serde::{Deserialize, Serialize};
-use serde_json::to_string_pretty;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GenerationDescription {
@@ -35,8 +35,8 @@ impl VJoyDescriptor {
         });
 
         fs::write(
-            output_file.unwrap_or("stub_descriptor.json".into()),
-            &to_string_pretty(&descriptor)?,
+            output_file.unwrap_or("stub_descriptor.ron".into()),
+            &to_string_pretty(&descriptor, PrettyConfig::default())?,
         )?;
 
         Ok(())
@@ -90,7 +90,7 @@ mod test {
     use std::{collections::HashMap, fs};
 
     use anyhow::Result;
-    use serde_json::to_string_pretty;
+    use ron::ser::{to_string_pretty, PrettyConfig};
 
     use crate::VJoyDescriptor;
 
@@ -106,7 +106,10 @@ mod test {
             axis_mappings: HashMap::new(),
         };
 
-        fs::write("example_descriptor.json", &to_string_pretty(&desc)?)?;
+        fs::write(
+            "example_descriptor.ron",
+            &to_string_pretty(&desc, PrettyConfig::default())?,
+        )?;
 
         Ok(())
     }
@@ -121,7 +124,10 @@ mod test {
             output: "Combined Thrustmaster Joystick".to_string(),
         });
 
-        fs::write("stub_descriptor.json", &to_string_pretty(&desc)?)?;
+        fs::write(
+            "stub_descriptor.ron",
+            &to_string_pretty(&desc, PrettyConfig::default())?,
+        )?;
 
         Ok(())
     }
