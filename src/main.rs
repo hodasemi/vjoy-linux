@@ -97,7 +97,8 @@ fn main() -> Result<()> {
                 println!("command: {command:?}");
             }
 
-            command.output().unwrap();
+            let output = command.output();
+            println!("{output:#?}");
         }
         None => {
             event_loop(output, receiver, descriptor, args.debug)?;
